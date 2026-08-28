@@ -1,0 +1,323 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Xfinity Text Updates — Scan Tracker</title>
+<style>
+/* ── CONFIG IS IN THE SCRIPT BLOCK AT THE BOTTOM ────────────────────── */
+:root{
+  color-scheme: light;
+  --surface-0:#ffffff;
+  --surface-1:#fcfcfb;
+  --surface-2:#f3f3f1;
+  --line:#e4e4e0;
+  --text-primary:#0b0b0b;
+  --text-secondary:#52514e;
+  --text-muted:#8a8a84;
+  --series-1:#2a78d6;
+  --series-1-soft:#dce9f9;
+  --critical:#d03b3b;
+  --good:#0ca30c;
+  --radius:10px;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme: dark;
+    --surface-0:#121211;
+    --surface-1:#1a1a19;
+    --surface-2:#232322;
+    --line:#33332f;
+    --text-primary:#ffffff;
+    --text-secondary:#c3c2b7;
+    --text-muted:#8b8a80;
+    --series-1:#3987e5;
+    --series-1-soft:#1c3350;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme: dark;
+  --surface-0:#121211; --surface-1:#1a1a19; --surface-2:#232322; --line:#33332f;
+  --text-primary:#ffffff; --text-secondary:#c3c2b7; --text-muted:#8b8a80;
+  --series-1:#3987e5; --series-1-soft:#1c3350;
+}
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--surface-0); color:var(--text-primary);
+  font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:1180px;margin:0 auto;padding:22px 20px 56px}
+
+/* header */
+.top{display:flex;flex-wrap:wrap;align-items:flex-end;gap:14px;margin-bottom:20px}
+h1{font-size:19px;font-weight:650;letter-spacing:-.01em;margin:0}
+.sub{font-size:13px;color:var(--text-secondary);margin-top:3px}
+.controls{margin-left:auto;display:flex;gap:8px;align-items:center}
+select,button{
+  font:inherit;font-size:13px;padding:7px 11px;border-radius:8px;
+  border:1px solid var(--line);background:var(--surface-1);color:var(--text-primary);cursor:pointer;
+}
+button:hover,select:hover{background:var(--surface-2)}
+
+/* kpi row */
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:22px}
+.kpi{background:var(--surface-1);border:1px solid var(--line);border-radius:var(--radius);padding:13px 15px}
+.kpi .k{font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--text-muted)}
+.kpi .v{font-size:27px;font-weight:650;letter-spacing:-.02em;margin-top:5px;line-height:1.1}
+.kpi .n{font-size:12px;color:var(--text-secondary);margin-top:2px}
+.kpi.alert .v{color:var(--critical)}
+
+/* card */
+.card{background:var(--surface-1);border:1px solid var(--line);border-radius:var(--radius);
+  padding:16px 18px;margin-bottom:20px}
+.card h2{font-size:13px;font-weight:650;letter-spacing:.02em;margin:0 0 2px}
+.card .cap{font-size:12px;color:var(--text-secondary);margin-bottom:14px}
+
+/* daily bars */
+.daily{display:flex;align-items:flex-end;gap:5px;height:120px}
+.daycol{flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:5px;min-width:0}
+.daybar{width:100%;background:var(--series-1);border-radius:4px 4px 0 0;min-height:2px;transition:opacity .12s}
+.daycol:hover .daybar{opacity:.75}
+.daylab{font-size:9.5px;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+
+/* table */
+table{width:100%;border-collapse:collapse;font-size:13.5px}
+th{
+  text-align:left;font-size:10.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;
+  color:var(--text-muted);padding:0 10px 8px;border-bottom:1px solid var(--line);white-space:nowrap;
+}
+td{padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+th.num,td.num{text-align:right;font-variant-numeric:tabular-nums}
+.store{font-weight:600}
+.code{font-size:11px;color:var(--text-muted);font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+.who{font-size:12px;color:var(--text-secondary)}
+.barcell{width:150px}
+.bartrack{height:7px;background:var(--series-1-soft);border-radius:4px;overflow:hidden}
+.barfill{height:100%;background:var(--series-1);border-radius:4px}
+.pill{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:600;white-space:nowrap}
+.dot{width:7px;height:7px;border-radius:50%;flex:none}
+.pill.zero{color:var(--critical)} .pill.zero .dot{background:var(--critical)}
+.pill.ok{color:var(--good)} .pill.ok .dot{background:var(--good)}
+
+.foot{font-size:12px;color:var(--text-muted);margin-top:26px;line-height:1.6}
+.err{background:#fdecec;border:1px solid #f3c4c4;color:#8c1d1d;padding:14px 16px;border-radius:var(--radius);font-size:13.5px}
+:root[data-theme="dark"] .err,:root:not([data-theme="light"]) .err{}
+.loading{color:var(--text-secondary);font-size:14px;padding:26px 0}
+@media (max-width:720px){ .hide-sm{display:none} .barcell{width:80px} }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="top">
+    <div>
+      <h1>Xfinity Text Updates — Scan Tracker</h1>
+      <div class="sub" id="sub">Loading…</div>
+    </div>
+    <div class="controls">
+      <select id="range">
+        <option value="7">Last 7 days</option>
+        <option value="14">Last 14 days</option>
+        <option value="30" selected>Last 30 days</option>
+      </select>
+      <button id="refresh">Refresh</button>
+    </div>
+  </div>
+
+  <div id="err"></div>
+  <div id="content" class="loading">Fetching scan data…</div>
+
+  <div class="foot">
+    This counts <b>scans</b>, not confirmed sends. Once the Messages app opens, what happens next is
+    between the phone and Comcast. A scan is strong evidence the rep offered the process — which is
+    the thing being measured.
+  </div>
+</div>
+
+<script>
+/* ══════════════════════════════════════════════════════════════════
+   CONFIG
+   ══════════════════════════════════════════════════════════════════ */
+var API_URL  = "https://script.google.com/macros/s/AKfycbwdQhMeMurysAnZlxoETk-6iF4CQaCHyolJZgH0DEUbbMih8hNzhtSs5PgfL5CsP-eA/exec";
+var READ_KEY = "60769b541a544048b6293ca92af2be35";
+/* ══════════════════════════════════════════════════════════════════ */
+
+var $ = function(id){ return document.getElementById(id); };
+var esc = function(s){ return String(s==null?"":s).replace(/[&<>"]/g, function(c){
+  return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c]; }); };
+
+/* Apps Script doGet supports a `callback` param, so JSONP avoids CORS entirely. */
+function jsonp(url, cb, onErr){
+  var name = "__cb" + Math.random().toString(36).slice(2);
+  var s = document.createElement("script");
+  var done = false;
+  window[name] = function(data){ done = true; cleanup(); cb(data); };
+  function cleanup(){ try{ delete window[name]; }catch(e){ window[name]=undefined; }
+                      if(s.parentNode) s.parentNode.removeChild(s); }
+  s.onerror = function(){ if(!done){ cleanup(); onErr("Could not reach the logging endpoint."); } };
+  setTimeout(function(){ if(!done){ cleanup(); onErr("Request timed out after 20 seconds."); } }, 20000);
+  s.src = url + (url.indexOf("?")<0?"?":"&") + "callback=" + name;
+  document.body.appendChild(s);
+}
+
+function fmtDate(iso){
+  if(!iso) return "—";
+  var d = new Date(iso);
+  if(isNaN(d)) return "—";
+  return d.toLocaleDateString(undefined,{month:"short",day:"numeric"}) + " " +
+         d.toLocaleTimeString(undefined,{hour:"numeric",minute:"2-digit"});
+}
+
+function load(){
+  var days = $("range").value;
+  $("err").innerHTML = "";
+  $("content").className = "loading";
+  $("content").textContent = "Fetching scan data…";
+
+  var url = API_URL + "?fn=stats&key=" + encodeURIComponent(READ_KEY) + "&days=" + encodeURIComponent(days);
+  jsonp(url, function(d){
+    if(!d || d.ok !== true){
+      fail(d && d.error ? ("The API returned: " + d.error) : "The API returned an unexpected response.");
+      return;
+    }
+    render(d);
+  }, fail);
+}
+
+function fail(msg){
+  $("content").innerHTML = "";
+  $("content").className = "";
+  $("err").innerHTML = '<div class="err"><b>Could not load scan data.</b><br>' + esc(msg) +
+    '<br><br>Most likely causes: the Tracker Read Key no longer matches the Config tab, ' +
+    'or the Apps Script deployment URL changed.</div>';
+  $("sub").textContent = "Last attempt failed";
+}
+
+function render(d){
+  var t = d.totals || {};
+  var stores = (d.stores || []).slice();
+  var daily  = d.daily  || [];
+  var dists  = d.districts || [];
+
+  /* worst performers to the top: zero-scan first, then ascending */
+  stores.sort(function(a,b){
+    if(a.scans !== b.scans) return a.scans - b.scans;
+    return String(a.name).localeCompare(String(b.name));
+  });
+
+  var max = 0, i;
+  for(i=0;i<stores.length;i++) if(stores[i].scans > max) max = stores[i].scans;
+  var dmax = 0;
+  for(i=0;i<daily.length;i++) if(daily[i].scans > dmax) dmax = daily[i].scans;
+
+  var h = "";
+
+  /* KPIs */
+  h += '<div class="kpis">';
+  h += kpi("Total scans", t.scans||0, d.windowDays + "-day window");
+  h += kpi("Opt-ins (START)", t.start||0, "");
+  h += kpi("Opt-outs (STOP)", t.stop||0, "");
+  h += kpi("Stores with scans", (t.storesWithScans||0) + " / " + (t.storesTotal||0), "");
+  h += kpi("Zero-scan stores", t.storesZero||0, "not offering the process", (t.storesZero||0) > 0);
+  h += '</div>';
+
+  /* daily */
+  h += '<div class="card"><h2>Scans per day</h2>' +
+       '<div class="cap">Every scan logged in the window, by day.</div><div class="daily">';
+  if(!daily.length){
+    h += '<div style="color:var(--text-secondary);font-size:13px">No days in range.</div>';
+  } else {
+    for(i=0;i<daily.length;i++){
+      var day = daily[i];
+      var pct = dmax ? Math.round((day.scans/dmax)*100) : 0;
+      var lbl = String(day.date).slice(5).replace("-","/");
+      h += '<div class="daycol" title="' + esc(day.date) + ' — ' + day.scans + ' scan' +
+           (day.scans===1?"":"s") + ' (' + day.start + ' start, ' + day.stop + ' stop)">' +
+           '<div class="daybar" style="height:' + Math.max(pct,day.scans>0?4:1) + '%"></div>' +
+           '<div class="daylab">' + esc(lbl) + '</div></div>';
+    }
+  }
+  h += '</div></div>';
+
+  /* stores */
+  h += '<div class="card"><h2>By store</h2>' +
+       '<div class="cap">Sorted worst first — the stores at the top are the ones to call.</div>' +
+       '<table><thead><tr>' +
+       '<th>Store</th><th class="hide-sm">District / DM</th><th class="hide-sm">Store manager</th>' +
+       '<th class="num">Start</th><th class="num">Stop</th><th class="num">Total</th>' +
+       '<th class="barcell"></th><th class="hide-sm">Last scan</th><th>Status</th>' +
+       '</tr></thead><tbody>';
+  for(i=0;i<stores.length;i++){
+    var s = stores[i];
+    var pct = max ? Math.round((s.scans/max)*100) : 0;
+    var zero = !s.scans;
+    h += '<tr>' +
+      '<td><div class="store">' + esc(s.name) + '</div><div class="code">' + esc(s.code) + '</div></td>' +
+      '<td class="hide-sm who">' + esc(s.district || s.dmName || "—") + '</td>' +
+      '<td class="hide-sm who">' + (s.managerName ? esc(s.managerName)
+          : '<span style="color:var(--critical)">none listed</span>') + '</td>' +
+      '<td class="num">' + (s.start||0) + '</td>' +
+      '<td class="num">' + (s.stop||0) + '</td>' +
+      '<td class="num"><b>' + (s.scans||0) + '</b></td>' +
+      '<td class="barcell"><div class="bartrack"><div class="barfill" style="width:' + pct + '%"></div></div></td>' +
+      '<td class="hide-sm who">' + esc(fmtDate(s.lastScan)) + '</td>' +
+      '<td>' + (zero
+          ? '<span class="pill zero"><span class="dot"></span>No scans</span>'
+          : '<span class="pill ok"><span class="dot"></span>Active</span>') + '</td>' +
+      '</tr>';
+  }
+  h += '</tbody></table></div>';
+
+  /* districts */
+  if(dists.length){
+    h += '<div class="card"><h2>By district</h2>' +
+         '<div class="cap">Districts show the DM name until the DM → District map on the Config tab is filled in.</div>' +
+         '<table><thead><tr><th>District</th><th class="num">Stores</th>' +
+         '<th class="num">Zero-scan</th><th class="num">Start</th><th class="num">Stop</th>' +
+         '<th class="num">Total</th></tr></thead><tbody>';
+    for(i=0;i<dists.length;i++){
+      var x = dists[i];
+      h += '<tr><td class="store">' + esc(x.name) + '</td>' +
+        '<td class="num">' + (x.storeCount||0) + '</td>' +
+        '<td class="num">' + ((x.storesZero||0) > 0
+             ? '<span style="color:var(--critical);font-weight:600">' + x.storesZero + '</span>'
+             : '0') + '</td>' +
+        '<td class="num">' + (x.start||0) + '</td>' +
+        '<td class="num">' + (x.stop||0) + '</td>' +
+        '<td class="num"><b>' + (x.scans||0) + '</b></td></tr>';
+    }
+    h += '</tbody></table></div>';
+  }
+
+  $("content").className = "";
+  $("content").innerHTML = h;
+
+  var syncTxt = d.directory && d.directory.syncedAt
+      ? " · directory synced " + fmtDate(d.directory.syncedAt) : "";
+  $("sub").textContent = "Updated " + fmtDate(d.generatedAt) + " · " +
+      (d.timezone || "") + syncTxt;
+}
+
+function kpi(label, value, note, alert){
+  return '<div class="kpi' + (alert ? ' alert' : '') + '">' +
+         '<div class="k">' + esc(label) + '</div>' +
+         '<div class="v">' + esc(value) + '</div>' +
+         (note ? '<div class="n">' + esc(note) + '</div>' : '') + '</div>';
+}
+
+/* height reporting, so this can be dropped into an iframe without a scrollbar */
+function reportHeight(){
+  if(window.parent === window) return;
+  try{ window.parent.postMessage({ scanTrackerHeight: document.body.scrollHeight }, "*"); }catch(e){}
+}
+new MutationObserver(reportHeight).observe(document.body,{childList:true,subtree:true});
+window.addEventListener("resize", reportHeight);
+
+$("refresh").addEventListener("click", load);
+$("range").addEventListener("change", load);
+load();
+</script>
+</body>
+</html>
